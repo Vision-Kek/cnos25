@@ -1,0 +1,36 @@
+dataset_name: ???
+split: ???
+name_exp: # optional suffix to identify your experiment in hydra outputs
+
+
+defaults:
+  - data: bop
+  - machine: local
+  - model: cnos25
+  - postprocess: nms
+  - _self_
+
+onboarding: static
+save_masks: False
+n_max_save: 100
+
+curr_day: ${now:%Y-%m-%d}
+curr_time: ${now:%H-%M-%S}
+save_name: ${curr_time}_${dataset_name}_${split}_${name_exp}
+
+bopeval:
+  _target_: src.utils.bop_eval.BopEval
+  bop_toolkit_dir:  # /path/to/bop_toolkit   # git clone https://github.com/thodan/bop_toolkit
+  # compose experiment name in the syntax that bop_toolkit eval script expects it
+  experiment_name: ${name_exp}_${dataset_name}-${split}
+  dataset_name: ${dataset_name}
+  dataset_base: ${data.query_dataloader.root_dir}
+  targets_to_be_evaluated: ${split}_targets_bop24.json
+  split: ${split}
+  verbose: 0
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${save_name}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${save_name}

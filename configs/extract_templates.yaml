@@ -1,0 +1,19 @@
+dataset_name: ???
+onboarding: static
+
+defaults:
+  - data: bop
+  - machine: local
+  - model/descriptor@descriptor_model: dinov3
+  - _self_
+
+out_file: dinov3_descriptors.pth  # you can modify this
+
+descriptor_extraction:
+  _target_: src.model.descriptor.template_extraction.DinoTemplateExtraction
+  ref_dataloader: ${data.reference_dataloader}
+  #ref_dataloader.template_dir: ${.ref_dataloader.template_dir}/${dataset_name}/onboarding_${onboarding}
+  descriptor_model: ${descriptor_model}
+  dataset_name: ${dataset_name}
+  obj_names: "${data.datasets[${dataset_name}].obj_names}"
+  n_templates: ${data.reference_dataloader.num_imgs_per_obj} # the default, can be overridden here

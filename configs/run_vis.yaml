@@ -1,0 +1,16 @@
+defaults:
+  - machine: local
+  - data: bop
+  - _self_
+
+# define templates
+#level: 0
+#distribution: all
+
+# dataset and scores to visualize
+dataset_dir: ${data.root_dir}/datasets
+split: test
+dataset_name:
+input_file:
+output_dir:
+conf_threshold: 0.5

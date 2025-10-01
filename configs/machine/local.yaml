@@ -1,0 +1,5 @@
+name: local
+
+# specific attributes to this machine
+num_workers: 2
+device: cuda

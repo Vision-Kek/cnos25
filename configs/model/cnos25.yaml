@@ -1,0 +1,9 @@
+_target_: src.model.cnos25.CNOS25
+device: ${machine.device}
+
+defaults:
+  - proposal: yoloe
+  - descriptor: dinov3
+  - _self_
+
+matching_metric: top_5

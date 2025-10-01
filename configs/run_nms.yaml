@@ -1,0 +1,13 @@
+defaults:
+  - data: bop
+  - postprocess: nms
+  - _self_
+
+dataset_name: None
+
+result_json: ??? # inputs
+out_dir: # where the postprocessed json/npzs will go
+out_filename_prefix: ${now:%Y-%m-%d}-${now:%H-%M-%S}-nms- # what will pre pretended to the result json's filename
+
+measure_AP: True
+bop_toolkit_dir: # /path/to/bop_toolkit

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cnos25"
+version = "0.1"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "hydra-core",
+    "numpy",
+    "omegaconf",
+    "pandas",
+    "Pillow",
+    "ruamel.yaml",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "transformers",
+    "matplotlib",
+    "opencv-python",
+    "ultralytics",
+    "supervision",
+    "torchvision",
+    "ftfy"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

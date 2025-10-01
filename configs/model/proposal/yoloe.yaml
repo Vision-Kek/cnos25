@@ -1,0 +1,14 @@
+ultralyticsmodel:
+  _target_: ultralytics.YOLOE
+  model: # path/to/yoloe-11l-seg.pt
+
+model: # wrapper
+  _target_: src.model.proposal.yoloe.YoloE
+  ultralyticsmodel: ${..ultralyticsmodel}   # you control what gets passed explicitly
+  text_prompts: "${data.datasets[${dataset_name}].prompts}"
+  cfg:
+    rotate_input_images: [0,90,-90]
+    keep_n_top_confident_proposals: 40
+    conf_thresh: 0.02
+    device: ${model.device}
+    verbose: False

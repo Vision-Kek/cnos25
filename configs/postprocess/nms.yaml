@@ -1,0 +1,5 @@
+_target_: src.scripts.postprocessing.nms_result_json
+nms_method: apply_nms_per_object_id  # a src.utils.detection_utils.Detections' method
+nms_thresh: 0.25
+npz_out_dirname: predictions_nms
+remove_intermediate_npzs: True
