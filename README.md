@@ -1,4 +1,5 @@
 # cnos25
+Tempalate-based novel object detection and segmentation.
 
 cnos25 follows the [CNOS](https://github.com/nv-nguyen/cnos/) proposal-then-match pipeline.
 It uses 
@@ -27,9 +28,9 @@ pip install -e .
 ```
 
 ### Checkpoints
-1. YOLOE-11l-seg:
+1. yoloe-11l-seg:
 [Download](https://github.com/ultralytics/assets/releases/download/v8.3.0/yoloe-11l-seg.pt) and set `ultralyticsmodel.model: /path/to/your/yoloe-11l-seg.pt` in [yoloe.yaml](configs/model/proposal/yoloe.yaml).
-2. Dinov3 ViT-L/16:
+2. dinov3 ViT-L/16:
    1. [Download](https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/) and set `hubmodel.weights: /path/to/your/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth` in [dinov3.yaml](configs/model/descriptor/dinov3.yaml). 
    2. Clone [dinov3](https://github.com/facebookresearch/dinov3). Set `repo_or_dir` to the dinov3 repo dir.  
 
@@ -48,7 +49,7 @@ The corresponding config file is [extract_templates.yaml](configs/extract_templa
 Descriptors are stored by default in a folder called `descriptors` created in `onboarding_static` of the selected dataset. 
 </details>
 
-### 2. Inference Stage:
+### 2. Inference Stage
 Predict boxes and segmentations: 
 ```commandline
 python run_inference.py dataset_name=hopev2 split=test
