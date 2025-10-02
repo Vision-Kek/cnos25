@@ -14,6 +14,9 @@ class DescriptorModel:
         image_size,
         chunk_size
     ):
+        logging.info(
+            f"Initializing DescriptorModel..."
+        )
         # not sure why torch.hub.load does only move transformer blocks, but not PatchEmbed and LayerNorm
         self.device = next(model.parameters()).device
         for module in model.modules():
@@ -32,7 +35,7 @@ class DescriptorModel:
         # use for global feature
         self.rgb_proposal_processor = CropResizePad(self.proposal_size)
         logging.info(
-            f"Init ProposalProcessor with {self.proposal_size=} done."
+            f"Init DescriptorModel with {self.proposal_size=} done."
         )
 
     def process_rgb_proposals(self, image_pil, masks, boxes):

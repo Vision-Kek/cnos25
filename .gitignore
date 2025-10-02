@@ -3,9 +3,7 @@
 outputs/
 multirun/
 results/
-slurm/
-slurm_logs/
-lightning_logs/
+local/
 None/
 huggingface/
 tmp/

@@ -2,19 +2,17 @@ cfg:
   model_name: dinov3_vitl16
   patch_size: 16
   token_type: x_norm_clstoken
-  cache_dir: ${data.root_dir}/datasets/${dataset_name}/onboarding_${onboarding}/descriptors
-  cache_file: asdf.pt
-
-hubmodel:
-  _target_: torch.hub.load
-  repo_or_dir: # /path/to/cloned/dinov3 # or from remote: facebookresearch/dinov2
-  source: local
-  model: ${..cfg.model_name}
-  weights: # /path/to/dinov3/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth
-  device: ${machine.device}
+  cache_dir: ${data.root_dir}/${dataset_name}/onboarding_${onboarding}/descriptors
+  cache_file: ${.model_name}_descriptors.pt
 
 model: # wrapper
   _target_: src.model.descriptor.descriptor_model.DescriptorModel
-  model: ${..hubmodel}
+  model:
+      _target_: torch.hub.load
+      repo_or_dir: ${local.dinov3_repo}
+      source: local
+      model: ${...cfg.model_name}
+      weights: ${local.dinov3_checkpoint}
+      device: ${local.device}
   image_size: 224
   chunk_size: 16

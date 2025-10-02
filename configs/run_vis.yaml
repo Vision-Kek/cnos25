@@ -1,6 +1,6 @@
 defaults:
-  - machine: local
   - data: bop
+  - local
   - _self_
 
 # define templates

@@ -1,6 +1,6 @@
 ultralyticsmodel:
   _target_: ultralytics.YOLOE
-  model: # path/to/yoloe-11l-seg.pt
+  model: ${local.yoloe_checkpoint}
 
 model: # wrapper
   _target_: src.model.proposal.yoloe.YoloE
@@ -10,5 +10,5 @@ model: # wrapper
     rotate_input_images: [0,90,-90]
     keep_n_top_confident_proposals: 40
     conf_thresh: 0.02
-    device: ${model.device}
+    device: ${local.device}
     verbose: False

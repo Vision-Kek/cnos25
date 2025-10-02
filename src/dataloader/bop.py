@@ -164,31 +164,33 @@ class BOPTemplate(Dataset):
                 target_size = [self.image_size, self.image_size]
                 if template_cropped.shape[-2:] != torch.Size(target_size):
                     logging.warning(f'Shape mismatch after cropping template IMAGE: {template_cropped.shape[-2:]}, interpolating')
+                    print(template_cropped.shape)
                     template_cropped = torch.nn.functional.interpolate(
-                        template_cropped,
+                        template_cropped.unsqueeze(0),
                         size=target_size,
                         mode='bilinear',
                         align_corners=False
-                    )
+                    )[0]
 
                 templates_cropped.append(T.ToPILImage()(template_cropped)) # return PIL image, not tensor
 
-                mask_cropped = self.proposal_processor(images=mask.unsqueeze(0), boxes=box.unsqueeze(0))
+                mask_cropped = self.proposal_processor(images=mask.unsqueeze(0), boxes=box.unsqueeze(0))[0]
 
                 # sometimes the cropping yields a 223 instead of 224 crop -> catch this case
                 if mask_cropped.shape[-2:] != torch.Size(target_size):
                     logging.warning(f'Shape mismatch after cropping template MASK: {mask_cropped.shape[-2:]}, interpolating')
+                    print(template_cropped.shape)
                     mask_cropped = torch.nn.functional.interpolate(
-                        mask_cropped,
+                        mask_cropped.unsqueeze(0),
                         size=target_size,
                         mode='bilinear',
                         align_corners=False
-                    )
+                    )[0]
 
                 masks_cropped.append(mask_cropped)
 
         #templates_cropped = torch.cat(templates_cropped,dim=0)
-        masks_cropped = torch.cat(masks_cropped,dim=0)
+        masks_cropped = torch.stack(masks_cropped,dim=0)
         return {
             "templates": templates_cropped, # PIL images
             "template_masks": masks_cropped[:, 0, :, :], # tensors
@@ -216,8 +218,8 @@ class BaseBOPTest(BaseBOP):
     ):
         self.root_dir = root_dir
         self.split = split
-        # dp_split is only required for hot3d dataset.
         self.dataset_name = kwargs.get("dataset_name", None)
+        # dp_split from bop_toolkit_lib/dataset_params is required to read keys["rgb_tpath,eval_modality","eval_sensor"]
         self.dp_split = dataset_params.get_split_params(
            Path(self.root_dir).parent,
            kwargs.get("dataset_name", None),

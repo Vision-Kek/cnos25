@@ -1,5 +1,5 @@
 _target_: src.model.cnos25.CNOS25
-device: ${machine.device}
+device: ${local.device}
 
 defaults:
   - proposal: yoloe

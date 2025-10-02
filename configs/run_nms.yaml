@@ -1,6 +1,7 @@
 defaults:
   - data: bop
   - postprocess: nms
+  - local
   - _self_
 
 dataset_name: None

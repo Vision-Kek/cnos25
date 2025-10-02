@@ -58,8 +58,8 @@ class YoloE:
     # param k: the rotation that was applied on the input image, sign same as in torch.rot90
     def back_rot90(yolo_res, img_size_in, k):
         for i in range(abs(k)):  # 0 times if k=0, 1 times if k=1 (90deg), 2 times if k=2 (180deg)
-            yolo_res.xyxy = boxes_rot90(yolo_res.xyxy, img_size_in[::1 - 2 * i], k=-np.sign(k))  # negative sign: backrot
-            yolo_res.mask = torch.rot90(yolo_res.mask, dims=(-2, -1), k=-np.sign(k))  # negative sign: backrot
+            yolo_res.xyxy = boxes_rot90(yolo_res.xyxy, img_size_in[::1 - 2 * i], k=-np.sign(k))  # -np.sign: back-rot
+            yolo_res.mask = torch.rot90(yolo_res.mask, dims=(-2, -1), k=-np.sign(k))  # -np.sign: back-rot
         return yolo_res
 
     def preprocess(self, pil_image):
@@ -98,7 +98,7 @@ class YoloE:
         proposals = self.postprocess(res)
         return proposals
 
-
+# adapted from https://github.com/THU-MIG/yoloe/blob/main/predict_text_prompt.py
 def visualize(pil_image, detections, top_k=-1, show_class_label=True):
     if 0 < top_k < len(detections):
         selected = torch.tensor(detections.confidence).topk(top_k).indices

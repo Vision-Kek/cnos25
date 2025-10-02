@@ -5,9 +5,9 @@ name_exp: # optional suffix to identify your experiment in hydra outputs
 
 defaults:
   - data: bop
-  - machine: local
   - model: cnos25
   - postprocess: nms
+  - local
   - _self_
 
 onboarding: static
@@ -20,7 +20,7 @@ save_name: ${curr_time}_${dataset_name}_${split}_${name_exp}
 
 bopeval:
   _target_: src.utils.bop_eval.BopEval
-  bop_toolkit_dir:  # /path/to/bop_toolkit   # git clone https://github.com/thodan/bop_toolkit
+  bop_toolkit_dir: ${local.bop_toolkit_repo}
   # compose experiment name in the syntax that bop_toolkit eval script expects it
   experiment_name: ${name_exp}_${dataset_name}-${split}
   dataset_name: ${dataset_name}

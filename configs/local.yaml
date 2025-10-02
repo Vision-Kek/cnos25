@@ -1,0 +1,10 @@
+# specific attributes to this machine
+local:
+  bop_data_root: # /path/to/bop-benchmark
+  dinov3_repo: # /path/to/cloned/dinov3 or from remote: facebookresearch/dinov3
+  dinov3_checkpoint: # /path/to/dinov3/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth
+  yoloe_checkpoint: # /path/to/yoloe/yoloe-11l-seg.pt
+  bop_toolkit_repo: # /path/to/bop_toolkit   # git clone https://github.com/thodan/bop_toolkit
+
+  num_workers: 2
+  device: cuda

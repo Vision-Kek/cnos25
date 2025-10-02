@@ -10,7 +10,7 @@ import torch
 
 
 def inference_loop(cfg, model, query_dataloader):
-    kekbopeval = instantiate(cfg.bopeval)
+    bopeval = instantiate(cfg.bopeval)
 
     for i,sample in enumerate(tqdm(query_dataloader)):
         sample = sample[0] # bs=1
@@ -25,7 +25,7 @@ def inference_loop(cfg, model, query_dataloader):
 
         torch.cuda.synchronize() # for accurate runtime measure
         runtime = time.time() - start
-        kekbopeval.save_detections_to_npzfile(sample=sample,
+        bopeval.save_detections_to_npzfile(sample=sample,
                                               boxes=proposals.boxes[:cfg.n_max_save].cpu(),
                                               class_idcs=assigned_idx_object[:cfg.n_max_save].cpu(),
                                               scores=score_per_proposal[:cfg.n_max_save].cpu(),
@@ -33,14 +33,14 @@ def inference_loop(cfg, model, query_dataloader):
                                               box_fmt='xyxy',
                                               masks=proposals.masks.cpu() if cfg.save_masks else None)
 
-    kekbopeval.generate_json_from_npzs()
-    if cfg.split != 'test': kekbopeval.measure_AP()
+    bopeval.generate_json_from_npzs()
+    if cfg.split != 'test': bopeval.measure_AP()
 
     if cfg.postprocess is not None:
         logging.info('Postprocessing...')
         hydra.utils.instantiate(cfg.postprocess,
-                                result_json=osp.join(kekbopeval.result_dir, f'{kekbopeval.bopstyle_experiment_name}.json'))
-        if cfg.split != 'test': kekbopeval.measure_AP(resultfile_name=f'nms-{kekbopeval.bopstyle_experiment_name}')
+                                result_json=osp.join(bopeval.result_dir, f'{bopeval.bopstyle_experiment_name}.json'))
+        if cfg.split != 'test': bopeval.measure_AP(resultfile_name=f'nms-{bopeval.bopstyle_experiment_name}')
         logging.info('Postprocessing Done.')
 
 @hydra.main(version_base=None, config_path="configs", config_name="run_inference")
@@ -71,7 +71,7 @@ def run_inference(cfg: DictConfig):
     query_dataloader = DataLoader(
         query_dataset,
         batch_size=1,  # only support a single image for now
-        num_workers=cfg.machine.num_workers,
+        num_workers=cfg.local.num_workers,
         collate_fn=no_collate,
         shuffle=False,
     )

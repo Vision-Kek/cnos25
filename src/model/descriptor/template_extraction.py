@@ -59,7 +59,7 @@ class TemplateEmbExtraction:
             self.ref_img_pths[object_class] = ref_sample["image_paths"]
             self.ref_images[object_class] = ref_sample["templates"]#[imgproc.torch_to_pil(tensor_im) for tensor_im in ref_sample["templates"]]
             self.ref_masks[object_class] = ref_sample["template_masks"].cpu()
-            logging.info(f'done {i}/{len(self.obj_names)}')
+            logging.info(f'done {i+1}/{len(self.obj_names)}')
             if cancel_after and (i+1) >= cancel_after: break
 
     def save(self, out_file, overwrite=False):
@@ -101,7 +101,6 @@ class TemplateEmbExtraction:
 
 class DinoTemplateExtraction(TemplateEmbExtraction):
     def __init__(self, descriptor_model, ref_dataloader, obj_names, dataset_name='hopev2', n_templates=100):
-        print(ref_dataloader)
         super().__init__(ref_dataloader, dataset_name, obj_names)
 
         self.descriptor_model = descriptor_model.model

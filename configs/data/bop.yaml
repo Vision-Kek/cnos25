@@ -1,11 +1,11 @@
-root_dir: # /path/to/bop
+root_dir: ${local.bop_data_root}
 source_url: https://bop.felk.cvut.cz/media/data/bop_datasets/
 unzip_mode: unzip
 
 reference_dataloader:
   #_partial_: True
   _target_: src.dataloader.bop.BOPTemplate
-  template_dir: ${..root_dir}/datasets/${dataset_name}/onboarding_${onboarding}
+  template_dir: ${..root_dir}/${dataset_name}/onboarding_${onboarding}
   per_modality: True  # whether to extract templates modality-wise, used in Hot3D
   num_imgs_per_obj: 100
   obj_ids:  # set at runtime
@@ -13,7 +13,7 @@ reference_dataloader:
 
 query_dataloader:
   _target_: src.dataloader.bop.BaseBOPTest
-  root_dir: ${..root_dir}/datasets/
+  root_dir: ${..root_dir}/
   split:  # set at runtime
   reset_metaData: True
   image_size: 224 # TODO set to ${model.descriptor.cfg.image_size}

@@ -3,16 +3,16 @@ onboarding: static
 
 defaults:
   - data: bop
-  - machine: local
   - model/descriptor@descriptor_model: dinov3
+  - local
   - _self_
 
-out_file: dinov3_descriptors.pth  # you can modify this
+out_file: # optional, default is descriptor_model.cfg.cache_file
+overwrite: False
 
 descriptor_extraction:
   _target_: src.model.descriptor.template_extraction.DinoTemplateExtraction
   ref_dataloader: ${data.reference_dataloader}
-  #ref_dataloader.template_dir: ${.ref_dataloader.template_dir}/${dataset_name}/onboarding_${onboarding}
   descriptor_model: ${descriptor_model}
   dataset_name: ${dataset_name}
   obj_names: "${data.datasets[${dataset_name}].obj_names}"
