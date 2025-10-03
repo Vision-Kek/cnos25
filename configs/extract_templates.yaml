@@ -9,11 +9,3 @@ defaults:
 
 out_file: # optional, default is descriptor_model.cfg.cache_file
 overwrite: False
-
-descriptor_extraction:
-  _target_: src.model.descriptor.template_extraction.DinoTemplateExtraction
-  ref_dataloader: ${data.reference_dataloader}
-  descriptor_model: ${descriptor_model}
-  dataset_name: ${dataset_name}
-  obj_names: "${data.datasets[${dataset_name}].obj_names}"
-  n_templates: ${data.reference_dataloader.num_imgs_per_obj} # the default, can be overridden here

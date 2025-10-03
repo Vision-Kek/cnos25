@@ -12,14 +12,16 @@ from torch.utils.data import Dataset
 from src.utils.bbox_utils import CropResizePad
 from src.dataloader.base_bop import BaseBOP
 
+
 try:
-    from bop_toolkit_lib import dataset_params, inout
+    from bop_toolkit_lib import dataset_params
+    from bop_toolkit_lib import inout as bop_inout
 except ImportError:
     raise ImportError(
         "Please install bop_toolkit_lib: pip install git+https://github.com/thodan/bop_toolkit.git"
     )
 
-# TODO Too many if dataset_name=="hot3d". <ake a own class for Hot3D Template too.
+
 # The template (reference) dataloader
 class BOPTemplate(Dataset):
     def __init__(
@@ -27,7 +29,6 @@ class BOPTemplate(Dataset):
         template_dir,
         obj_ids,
         image_size,
-        per_modality,
         num_imgs_per_obj=50,
         **kwargs,
     ):
@@ -43,24 +44,17 @@ class BOPTemplate(Dataset):
             obj_ids = sorted(np.unique(obj_ids).tolist())
             logging.info(f"Found {obj_ids} objects in {self.template_dir}")
 
-        # for HOT3D, we have black objects so we use gray background
         if "hot3d" in template_dir:
-            self.use_gray_background = True
-            logging.info("Use gray background for HOT3D")
-        else:
-            self.use_gray_background = False
+            raise ValueError("For loading HOT3D onboarding data, please use class BOPHOT3DTemplate.")
+
         self.num_imgs_per_obj = num_imgs_per_obj  # to avoid memory issue
-        self.per_modality = per_modality # whether to extract templates modality-wise
         self.obj_ids = obj_ids
         self.image_size = image_size
 
         self.proposal_processor = CropResizePad(
             self.image_size,
-            pad_value=0.5 if self.use_gray_background else 0,
+            pad_value=0  # black background
         )
-
-    def __len__(self):
-        return len(self.obj_ids)
 
     def load_template_poses(self, level_templates, pose_distribution):
         raise NotImplementedError('Model-based not implemented. Go back to https://github.com/nv-nguyen/cnos.')
@@ -69,17 +63,10 @@ class BOPTemplate(Dataset):
         templates_cropped, masks_cropped, boxes, image_paths = [], [], [], []
         static_onboarding = True if "onboarding_static" in self.template_dir else False
         if static_onboarding:
-            # HOT3D names the two videos with _1 and _2 instead of _up and _down
-            if self.dataset_name == "hot3d":
-                obj_dirs = [
-                    f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_1",
-                    f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_2",
-                ]
-            else:
-                obj_dirs = [
-                    f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_up",
-                    f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_down",
-                ]
+            obj_dirs = [
+                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_up",
+                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_down",
+            ]
             num_selected_imgs = self.num_imgs_per_obj // 2  # 100 for 2 videos
 
             # Objects 34-40 of HANDAL have only one "up" video as these objects are symmetric
@@ -101,53 +88,28 @@ class BOPTemplate(Dataset):
             if not osp.exists(obj_dir):
                 continue
             obj_dir = Path(obj_dir)
-            if self.dataset_name == "hot3d":
-                obj_rgbs = sorted(Path(obj_dir).glob("*214-1.[pj][pn][g]"))
-                if self.per_modality:
-                    # use 1201-2 and not 1201-1 stream because in -1 stream some boxes are negative
-                    obj_rgbs += sorted(Path(obj_dir).glob("*1201-2.[pj][pn][g]"))
-                obj_masks = [None for _ in obj_rgbs]
-            else:
-                # list all rgb
-                obj_rgbs = sorted(Path(obj_dir).glob("rgb/*.[pj][pn][g]"))
-                # list all masks
-                obj_masks = sorted(Path(obj_dir).glob("mask_visib/*.[pj][pn][g]"))
+
+            # list all rgb
+            obj_rgbs = sorted(Path(obj_dir).glob("rgb/*.[pj][pn][g]"))
+            # list all masks
+            obj_masks = sorted(Path(obj_dir).glob("mask_visib/*.[pj][pn][g]"))
+
             assert len(obj_rgbs) == len(
                 obj_masks
             ), f"rgb and mask mismatch in {obj_dir}"
-            
-            # If HOT3D + dynamic onboarding, we have the bbox for only the first image.
-            # therefore, we select the first image only.
-            if self.dataset_name == "hot3d" and not static_onboarding:
-                selected_idx = [0, 0, 0, 0, 0] # required aggregation top k
-            else:
-                # random selection here
-                selected_idx = list(np.random.choice(
-                    len(obj_rgbs), num_selected_imgs, replace=False
-                ))
+
+            # select random samples
+            selected_idx = list(np.random.choice(
+                len(obj_rgbs), num_selected_imgs, replace=False
+            ))
+
             for idx_img in tqdm(selected_idx):
                 image = Image.open(obj_rgbs[idx_img])
-                if self.dataset_name == "hot3d":
-                    # support _1202-x Quest3, too # but maybe the Aria rgb images are enough for the templates, and Quest3 is only used for inference.
-                    img_suffix = str(obj_rgbs[idx_img]).split('.image_')[-1] # either 214-1.jpg or 1201
-                    json_path = str(obj_rgbs[idx_img]).replace(
-                        f"image_{img_suffix}", "objects.json"
-                    )
-                    info = inout.load_json(json_path)
-                    obj_id = [k for k in info.keys()][0]
-                    try:
-                        bbox = np.int32(info[obj_id][0]["boxes_amodal"][img_suffix.split('.')[0]]) # box is derived from .objects.json
-                    except KeyError as e:
-                        logging.warning(f"No such key {img_suffix.split('.')[0]}, available {info[obj_id][0]['boxes_amodal'].keys()}")
-                        logging.warning(f'Sampling another one')
-                        selected_idx.append(np.random.choice(len(obj_rgbs), 1).item())
-                        continue
-                    mask = np.ones((image.size[1], image.size[0])) * 255
-                else:
-                    mask = Image.open(obj_masks[idx_img])
-                    image = np.asarray(image) * np.expand_dims(np.asarray(mask) > 0, -1) # apply mask
-                    image = Image.fromarray(image)
-                    bbox = mask.getbbox() # box is derived from non-zero mask
+
+                mask = Image.open(obj_masks[idx_img])
+                image = np.asarray(image) * np.expand_dims(np.asarray(mask) > 0, -1) # apply mask
+                image = Image.fromarray(image)
+                bbox = mask.getbbox() # box is derived from non-zero mask
 
                 mask = torch.from_numpy(np.array(mask) / 255).float()
                 image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
@@ -159,47 +121,23 @@ class BOPTemplate(Dataset):
                 if box.min() < 0: logging.warning(f'{box.min()=} < 0')
 
                 template_cropped = self.proposal_processor(images=template.unsqueeze(0), boxes=box.unsqueeze(0))[0]
-
-                # sometimes the cropping yields a 223 instead of 224 crop -> catch this case
-                target_size = [self.image_size, self.image_size]
-                if template_cropped.shape[-2:] != torch.Size(target_size):
-                    logging.warning(f'Shape mismatch after cropping template IMAGE: {template_cropped.shape[-2:]}, interpolating')
-                    print(template_cropped.shape)
-                    template_cropped = torch.nn.functional.interpolate(
-                        template_cropped.unsqueeze(0),
-                        size=target_size,
-                        mode='bilinear',
-                        align_corners=False
-                    )[0]
-
                 templates_cropped.append(T.ToPILImage()(template_cropped)) # return PIL image, not tensor
 
                 mask_cropped = self.proposal_processor(images=mask.unsqueeze(0), boxes=box.unsqueeze(0))[0]
-
-                # sometimes the cropping yields a 223 instead of 224 crop -> catch this case
-                if mask_cropped.shape[-2:] != torch.Size(target_size):
-                    logging.warning(f'Shape mismatch after cropping template MASK: {mask_cropped.shape[-2:]}, interpolating')
-                    print(template_cropped.shape)
-                    mask_cropped = torch.nn.functional.interpolate(
-                        mask_cropped.unsqueeze(0),
-                        size=target_size,
-                        mode='bilinear',
-                        align_corners=False
-                    )[0]
-
                 masks_cropped.append(mask_cropped)
 
-        #templates_cropped = torch.cat(templates_cropped,dim=0)
         masks_cropped = torch.stack(masks_cropped,dim=0)
         return {
-            "templates": templates_cropped, # PIL images
+            "templates": templates_cropped, # PIL image List
             "template_masks": masks_cropped[:, 0, :, :], # tensors
             "image_paths": image_paths
         }
 
-
     def __getitem__modelbased__(self, idx):
         raise NotImplementedError('Model-based not implemented. Go back to https://github.com/nv-nguyen/cnos.')
+
+    def __len__(self):
+        return len(self.obj_ids)
 
     def __getitem__(self, idx):
         if self.model_free_onboarding:
@@ -210,14 +148,9 @@ class BOPTemplate(Dataset):
 
 # The query (test) dataloader
 class BaseBOPTest(BaseBOP):
-    def __init__(
-        self,
-        root_dir,
-        split,
-        **kwargs,
-    ):
-        self.root_dir = root_dir
-        self.split = split
+    def __init__(self, root_dir, split, **kwargs):
+        super().__init__(root_dir, split, **kwargs)
+
         self.dataset_name = kwargs.get("dataset_name", None)
         # dp_split from bop_toolkit_lib/dataset_params is required to read keys["rgb_tpath,eval_modality","eval_sensor"]
         self.dp_split = dataset_params.get_split_params(
@@ -225,19 +158,13 @@ class BaseBOPTest(BaseBOP):
            kwargs.get("dataset_name", None),
            split=split,
         )
-        # HOT3D test split contains all test images, not only the ones required for evaluation.
-        # to speed up the inference, it is faster to only load the images required for evaluation.
+
+        self.target_images_per_scene = {}
         self.load_required_test_images_from_target_file(split)
         self.load_list_scene(split=split)
         self.load_metaData(reset_metaData=True, split=split)
         # shuffle metadata
         self.metaData = self.metaData.sample(frac=1, random_state=2021).reset_index()
-        # self.rgb_transform = T.Compose(
-        #     [
-        #         T.ToTensor(),
-        #         T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        #     ]
-        # )
 
     def load_required_test_images_from_target_file(self, split='test') -> None:
         # List all the files in the target directory.
@@ -254,8 +181,7 @@ class BaseBOPTest(BaseBOP):
             len(target_files) == 1
         ), f"Expected one target file, found {len(target_files)}"
         print(f"Loading target file: {target_files[0]}")
-        targets = inout.load_json(str(target_files[0]))
-        self.target_images_per_scene = {}
+        targets = bop_inout.load_json(str(target_files[0]))
         for item in targets:
             scene_id, im_id = int(item["scene_id"]), int(item["im_id"])
             if scene_id not in self.target_images_per_scene:
@@ -266,10 +192,9 @@ class BaseBOPTest(BaseBOP):
         rgb_path = self.metaData.iloc[idx]["rgb_path"]
         scene_id = self.metaData.iloc[idx]["scene_id"]
         frame_id = self.metaData.iloc[idx]["frame_id"]
-        image = Image.open(rgb_path)
-        #image = self.rgb_transform(image.convert("RGB"))
+
         return dict(
-            image=image,
+            image=Image.open(rgb_path),
             scene_id=scene_id,
             frame_id=frame_id,
         )

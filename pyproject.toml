@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cnos25"
 version = "0.1"
-description = ""
+description = "Tempalate-based novel object detection and segmentation."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -14,7 +14,7 @@ dependencies = [
     "omegaconf",
     "pandas",
     "pycocotools",
-    "Pillow",
+    "pillow",
     "ruamel.yaml",
     "torch",
     "torchvision",

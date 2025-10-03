@@ -14,5 +14,5 @@ model: # wrapper
       model: ${...cfg.model_name}
       weights: ${local.dinov3_checkpoint}
       device: ${local.device}
-  image_size: 224
+  image_size: 256
   chunk_size: 16

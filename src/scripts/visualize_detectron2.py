@@ -10,11 +10,11 @@ from PIL import Image
 from tqdm import tqdm
 
 from src.utils.visualization_detectron2 import CNOSVisualizer
+from src.utils.detection_utils import rle_to_mask
 
 
 @hydra.main(version_base=None, config_path="../../configs", config_name="run_vis")
 def visualize(cfg: DictConfig) -> None:
-    from sam2.utils.amg import rle_to_mask
     if cfg.split=='test' and cfg.dataset_name in ["hb", "tless"]:
         split = "test_primesense"
     else:
@@ -42,6 +42,7 @@ def visualize(cfg: DictConfig) -> None:
         if cfg.dataset_name == 'hot3d':
             device='quest3' if scene_id <= 1848 else 'aria'
             stream='1201-1' if scene_id <= 1848 else '214-1'
+            # TODO try to load from .tar
             img_path = f'{cfg.dataset_dir}/cache-{cfg.dataset_name}/{split}/unzipped_{split}_{device}/clip-{scene_id:06d}/{image_id:06d}.image_{stream}.jpg'
         else:
             imgfile_ext = 'jpg' if cfg.dataset_name == 'handal' else 'png'

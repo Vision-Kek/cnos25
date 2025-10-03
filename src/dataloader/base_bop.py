@@ -3,22 +3,21 @@ import os.path as osp
 from tqdm import tqdm
 import time
 import numpy as np
-import torchvision.transforms as T
 from pathlib import Path
 from PIL import Image
 from torch.utils.data import Dataset
 import os.path as osp
 import pandas as pd
-from src.utils.inout import load_json, save_json, casting_format_to_save_json
 import torch
-from src.utils.bbox_utils import CropResizePad
+
+from src.utils.inout import load_json, save_json, casting_format_to_save_json
+
 
 class BaseBOP(Dataset):
     def __init__(
         self,
         root_dir,
         split,
-        dataset_name=None,
         **kwargs,
     ):
         """

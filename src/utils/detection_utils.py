@@ -1,3 +1,4 @@
+from typing import Dict, Any
 import torch
 import numpy as np
 import torchvision
@@ -49,6 +50,20 @@ def mask_to_rle(binary_mask):
     counts.append(running_length)
 
     return rle
+
+ #https://github.com/facebookresearch/sam2/blob/main/sam2/utils/amg.py
+def rle_to_mask(rle: Dict[str, Any]) -> np.ndarray:
+    """Compute a binary mask from an uncompressed RLE."""
+    h, w = rle["size"]
+    mask = np.empty(h * w, dtype=bool)
+    idx = 0
+    parity = False
+    for count in rle["counts"]:
+        mask[idx : idx + count] = parity
+        idx += count
+        parity ^= True
+    mask = mask.reshape(w, h)
+    return mask.transpose()  # Put in C order
 
 
 class BatchedData:

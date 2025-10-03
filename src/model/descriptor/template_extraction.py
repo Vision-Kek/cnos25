@@ -43,7 +43,7 @@ class TemplateEmbExtraction:
 
         self.ref_images = {} # The cropped templates extracted
         self.ref_masks = {} # The corresponding masks
-        self.ref_sample_descriptors = defaultdict(list) # The resulting template embeddings; key e.g. bb_patch_objname
+        self.ref_descriptors = defaultdict(list) # The resulting template embeddings; key e.g. bb_patch_objname
         self.ref_img_pths = {} # key: objname, val: the image path that was sampled by ref_dataset
 
         if out_dir is None: self.out_dir = osp.join(self.ref_dataset.template_dir, 'descriptors')
@@ -64,8 +64,8 @@ class TemplateEmbExtraction:
 
     def save(self, out_file, overwrite=False):
         out_pth = osp.join(self.out_dir, out_file)
-        if osp.exists(out_pth) and not overwrite: raise FileExistsError()
-        ref_sample_embeds = {k: v.cpu() for k, v in tqdm(self.ref_sample_descriptors.items())}
+        if osp.exists(out_pth) and not overwrite: raise FileExistsError('Pass overwrite=True if you really want to.')
+        ref_sample_embeds = {k: v.cpu() for k, v in tqdm(self.ref_descriptors.items())}
         data_to_save = {
             'template_embeds': ref_sample_embeds,
             'template_imgs': self.ref_img_pths,
@@ -75,13 +75,13 @@ class TemplateEmbExtraction:
         logging.info(f'Saving to {out_pth}.')
         torch.save(data_to_save, out_pth)
 
-    def check_saved(self, out_file, dino_with_bb_anb_patch_feats=True):
+    def check_saved(self, out_file, dino_with_bb_anb_patch_feats=True, verbose=1):
         out_pth = osp.join(self.out_dir, out_file)
         logging.info(f'opening {out_pth} of size {osp.getsize(out_pth)/1e6:.1f}M')
         x = torch.load(out_pth, map_location=torch.device('cpu'), weights_only=False)
-        logging.info('entries in saved file: ', {k:len(v) for k,v in x.items()})
-        assert 'template_embeds' in x.keys()
-        if dino_with_bb_anb_patch_feats:
+        logging.info(f'entries in saved file: { {k:len(v) for k,v in x.items()} }')
+        assert 'template_embeds' in x.keys(), x.keys()
+        if dino_with_bb_anb_patch_feats and verbose > 1:
             embs_dict = x['template_embeds']
             n_objects = len(embs_dict) / 2
             sample = next(iter(embs_dict.values()))
@@ -100,21 +100,21 @@ class TemplateEmbExtraction:
 
 
 class DinoTemplateExtraction(TemplateEmbExtraction):
-    def __init__(self, descriptor_model, ref_dataloader, obj_names, dataset_name='hopev2', n_templates=100):
+    def __init__(self, descriptor_model, ref_dataloader, obj_names, dataset_name):
         super().__init__(ref_dataloader, dataset_name, obj_names)
 
-        self.descriptor_model = descriptor_model.model
-        self.ref_dataset.num_imgs_per_obj = n_templates
+        self.descriptor_model = hydra.utils.instantiate(descriptor_model.model)
 
     def calc_ref_embs(self):
         # Iterate over object classes (n)
         for class_name, template_imgs in tqdm(self.ref_images.items(), desc="Computing template descriptors ..."):
             assert isinstance(template_imgs[0], PIL.Image.Image), f'got {type(template_imgs[0])}'
 
-            template_img_tensors = torch.stack([self.descriptor_model.rgb_normalize(im) for im in template_imgs]) # processor
+            # processing
+            template_img_tensors = torch.stack([self.descriptor_model.rgb_normalize(im) for im in template_imgs])
             template_img_tensors = template_img_tensors.to(self.descriptor_model.device)
-
+            # forward
             res = self.descriptor_model.chunked_fwd(template_img_tensors)
 
-            self.ref_sample_descriptors['x_norm_clstoken_' + class_name] = res['x_norm_clstoken']
-            self.ref_sample_descriptors['x_norm_patchtokens_' + class_name] = res['x_norm_patchtokens']
+            self.ref_descriptors['x_norm_clstoken_' + class_name] = res['x_norm_clstoken']
+            self.ref_descriptors['x_norm_patchtokens_' + class_name] = res['x_norm_patchtokens']

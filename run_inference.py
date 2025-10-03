@@ -52,7 +52,7 @@ def run_inference(cfg: DictConfig):
 
     if cfg.dataset_name == 'hot3d':
         from src.dataloader import bop_hot3d
-        query_dataset = bop_hot3d.BaseBOPHOT3D(root_dir=osp.join(cfg.data.root_dir, 'datasets', 'hot3d'))
+        query_dataset = bop_hot3d.BaseBOPHOT3D(root_dir=osp.join(cfg.data.root_dir, 'hot3d'), split=cfg.split)
     else:
         query_dataloader_config = cfg.data.query_dataloader.copy()
         logging.info("Initializing query dataloader...")
@@ -78,7 +78,7 @@ def run_inference(cfg: DictConfig):
     if 'static' in cfg.onboarding:
         logging.info("Using static onboarding images")
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Not implemented yet.")
 
     logging.info(f"---" * 20)
     inference_loop(cfg, model, query_dataloader)
