@@ -35,15 +35,14 @@ def visualize(cfg: DictConfig) -> None:
     # sort by (scene_id, frame_id)
     dets = sorted(dets, key=lambda x: (x['scene_id'], x['image_id']))
     list_scene_id_and_frame_id = list(set([(det['scene_id'], det['image_id']) for det in dets]))
-    #print(list_scene_id_and_frame_id)
     
     os.makedirs(cfg.output_dir, exist_ok=True)
     for idx, (scene_id, image_id) in tqdm(enumerate(list_scene_id_and_frame_id)):
         if cfg.dataset_name == 'hot3d':
             device='quest3' if scene_id <= 1848 else 'aria'
             stream='1201-1' if scene_id <= 1848 else '214-1'
-            # TODO try to load from .tar
-            img_path = f'{cfg.dataset_dir}/cache-{cfg.dataset_name}/{split}/unzipped_{split}_{device}/clip-{scene_id:06d}/{image_id:06d}.image_{stream}.jpg'
+            # TODO try to load from .tar to avoid the need to create this duplicate unzipped hot3d folders
+            img_path = f'{cfg.dataset_dir}/{cfg.dataset_name}/{split}/unzipped_{split}_{device}/clip-{scene_id:06d}/{image_id:06d}.image_{stream}.jpg'
         else:
             imgfile_ext = 'jpg' if cfg.dataset_name == 'handal' else 'png'
             img_path = f'{cfg.dataset_dir}/{cfg.dataset_name}/{split}/{scene_id:06d}/rgb/{image_id:06d}.{imgfile_ext}'

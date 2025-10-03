@@ -8,7 +8,7 @@ defaults:
 #distribution: all
 
 # dataset and scores to visualize
-dataset_dir: ${data.root_dir}/datasets
+dataset_dir: ${data.root_dir}
 split: test
 dataset_name:
 input_file:

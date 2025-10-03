@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/badge/BOP2025-8A2BE2" />
 </a>
 
-**Tempalate-based novel object detection and segmentation.**
+Tempalate-based novel object detection and segmentation.
 
 ---
 cnos25 follows the [CNOS](https://github.com/nv-nguyen/cnos/) propose-then-match pipeline.
@@ -88,7 +88,7 @@ Check out the [onboarding notebook](onboarding_demo.ipynb) and the [inference no
 
 ## ▶️ Full run
 Following the [BOP workflow](https://bop.felk.cvut.cz/static/img/6d_object_pose_estimation.jpg), there are two stages,
-onboarding and inference.
+onboarding and inference:
 
 ###  1. Onboarding Stage
 Extract the reference (=template) descriptors from the onboarding data:
@@ -102,6 +102,19 @@ The corresponding config file is [extract_templates.yaml](configs/extract_templa
 Descriptors are stored by default in `onboarding_static/descriptors` of the selected dataset.
 The default output file name is `${model_name}_descriptors.pt`.
 Change it by passing `out_file=foo.pt`.
+
+</details>
+
+</details>
+
+<details><summary>hydra troubleshooting</summary>
+
+1. Make sure you have all paths correctly set in `local.yaml` and the dataset [file tree](#datasets) matches.
+2. You can override all config params from CLI. For example, if there are issues during template extraction, you can have a fast test run with only 6 instead of 100 samples per object:
+    ```
+    python -m src.scripts.extract_template_descriptors data.reference_dataloader.num_imgs_per_obj=6 out_file=dummy.pt dataset_name=...
+    ```
+3. Instead of running everything as a single python script, run modularly using our provided [notebooks](). It might be easier to spot the exact issue there.
 
 </details>
 
@@ -119,16 +132,6 @@ which are required for textual prompting of YOLOE.
 
 </details>
 
-<details><summary>Measure AP on validation split</summary>
-
-If you pass `split=val`, resulting AP is directly measured since ground truth is available for the validation set.
-This requires two setup steps:
-1. Since this invokes the [bop toolkit script](https://github.com/thodan/bop_toolkit/blob/master/scripts/eval_bop22_coco.py),
-`git clone https://github.com/thodan/bop_toolkit/` and set `bop_toolkit_repo:` in [local.yaml](configs/run_inference.yaml).
-2. Copy the respective `val_targets_bop24.json` from [val_targets/](val_targets) into your `{bop_data_root}/{dataset_name}`.
-
-</details>
-
 <details><summary>bop_toolkit troubleshooting</summary>
 
 * `datetime.UTC` error in `bop_toolkit_lib/misc.py` - Fix: Change to `datetime.timezone.utc` [#203](https://github.com/thodan/bop_toolkit/commit/b9fefca50e7cf79a007d9e1603888f127fe12fac).
@@ -143,17 +146,64 @@ Reason: Deprecated calls to `datetime` and `pycocotools` in `bop_toolkit_lib`.
 
 </details>
 
-<details><summary>hydra troubleshooting</summary>
+<details><summary>Custom datasets</summary>
 
-1. Make sure you have all paths correctly set in `local.yaml`.
-2. You can override all config params from CLI. For example, if there are issues during template extraction, you can have a fast test run with only 6 instead of 100 samples per object:
-    ```
-    python -m src.scripts.extract_template_descriptors data.reference_dataloader.num_imgs_per_obj=6 out_file=dummy.pt dataset_name=...
-    ```
-3. Instead of running everything as a single python script, run modularly using our provided [notebooks](). It might be easier to spot the exact issue there.
+You can have a look at the [template for custom datasets](configs/data/custom_datasets.yaml).
+Complete it and replace `bop` through it as the `defaults` config option for [onboarding](configs/extract_templates.yaml) and [inference](configs/run_inference.yaml).
 
 </details>
 
+## 📉 Results
+
+
+|         | Proposal-Descriptor | H3    | Hot3D | Hopev2 | Handal |
+|---------|---------------------|-------|-------|--------|--------|
+| cnos    | FastSAM-dinov2      | 0.340 | 0.373 | 0.343  | 0.304  |
+| cnos25  | YOLOE-dinov3        | 0.435 | 0.464 | 0.452  | 0.389  |
+
+Avg. 0.126 sec / image on RTX4090.
+
+<details><summary>Output dir and files</summary>
+
+Once you have started a run, its results are written into hydra-set `outputs/yyyy-mm-dd/hh-mm-ss_xxxx/`.
+You'll find
+* a `predictions` folder containing the image-wise predictions as npz files.
+* a `nms-{...}.json` that contains the accumulated and postprocessed predictions that can be submitted to the BOP challenge.
+
+</details>
+
+<details><summary>Measure AP on validation split</summary>
+
+If you pass `split=val`, resulting AP is directly measured since ground truth is available for the validation set.
+This requires two setup steps:
+1. Since this invokes the [bop toolkit script](https://github.com/thodan/bop_toolkit/blob/master/scripts/eval_bop22_coco.py),
+`git clone https://github.com/thodan/bop_toolkit/` and set `bop_toolkit_repo:` in [local.yaml](configs/run_inference.yaml).
+2. Copy the respective `val_targets_bop24.json` from [val_targets/](val_targets) into your `{bop_data_root}/{dataset_name}`.
+
+</details>
+
+<details><summary>Preprocessing for reported results</summary>
+
+Reported results from the [BOP challenge submission](https://bop.felk.cvut.cz/leaderboards/modelfree-detection-unseen-bop24/bop-h3)
+have been produced with input images rotated for some datasets, because YOLOE is not optimal on rotated images.
+This prepocessing configuration can be set in [yoloe.yaml](configs/model/proposal/yoloe.yaml): 
+* For Hot3D, all images are rotated clockwise by 90deg: `rotate_input_images: [ -90 ]`
+* For Handal, a batch of 3 images is created and the frame with the highest cumulative confidence selected: `rotate_input_images: [ 0, 90, -90 ]`
+* For Hopev2, no such rotation was done: `rotate_input_images: [ ]`
+
+</details>
+
+<details><summary>Visualize results</summary>
+
+Provide `dataset_name`, `split`, and the result `.json` to the following script:
+```bash
+mkdir viz
+python -m src.scripts.visualize_detectron2 dataset_name={...} split={...} input_file=outputs/{...}/nms-{...}.json output_dir=viz
+```
+The corresponding config file is [run_vis.yaml](configs/run_vis.yaml). Adopted from original cnos.
+
+You can also download any submission file from the BOP website and feed it.
+</details>
 
 ## Acknowledgement
 The code is adapted from [CNOS](https://github.com/nv-nguyen/cnos/). The two models used are

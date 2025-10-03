@@ -5,17 +5,15 @@ unzip_mode: unzip
 reference_dataloader:
   _target_: src.dataloader.bop.BOPTemplate
   template_dir: ${..root_dir}/${dataset_name}/onboarding_${onboarding}
-#  per_modality: True  # whether to extract templates modality-wise, used in Hot3D (True -> [rgb,gray], False -> [rgb])
   num_imgs_per_obj: 100
   obj_ids:  # set at runtime
-  image_size: 224 # TODO set to ${model.descriptor.cfg.image_size}
+  image_size: 256
 
 query_dataloader:
-  _target_: src.dataloader.bop.BaseBOPTest
+  _target_: src.dataloader.bop.BOPTest
   root_dir: ${..root_dir}/
-  split:  # set at runtime
+  split: ${split}
   reset_metaData: True
-  image_size: 224 # TODO set to ${model.descriptor.cfg.image_size}
 
 datasets:
   hot3d:

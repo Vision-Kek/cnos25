@@ -147,7 +147,7 @@ class BOPTemplate(Dataset):
 
 
 # The query (test) dataloader
-class BaseBOPTest(BaseBOP):
+class BOPTest(BaseBOP):
     def __init__(self, root_dir, split, **kwargs):
         super().__init__(root_dir, split, **kwargs)
 

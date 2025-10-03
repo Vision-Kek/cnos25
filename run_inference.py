@@ -50,15 +50,14 @@ def run_inference(cfg: DictConfig):
     output_path = hydra_cfg.runtime.output_dir
     logging.info(f"The outputs of hydra will be stored in: {output_path}")
 
+    logging.info("Initializing query dataloader...")
+    logging.info(f"{cfg.data.root_dir=}")
     if cfg.dataset_name == 'hot3d':
         from src.dataloader import bop_hot3d
         query_dataset = bop_hot3d.BaseBOPHOT3D(root_dir=osp.join(cfg.data.root_dir, 'hot3d'), split=cfg.split)
     else:
         query_dataloader_config = cfg.data.query_dataloader.copy()
-        logging.info("Initializing query dataloader...")
-        logging.info(f"{cfg.data.root_dir=}")
         query_dataloader_config.dataset_name = cfg.dataset_name
-        query_dataloader_config.split = cfg.split
         query_dataloader_config.root_dir += f"{cfg.dataset_name}"
         query_dataset = instantiate(query_dataloader_config)
     logging.info("Initializing query dataloader Done.")

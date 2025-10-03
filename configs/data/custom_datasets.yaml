@@ -1,0 +1,18 @@
+root_dir: your_data_root_dir  # replace
+
+reference_dataloader:
+  _target_: src.dataloader.your.TemplateDataLoader  # write a dataloader class that provides the template crops + masks
+  template_dir: ${..root_dir}/${dataset_name}/onboarding_${onboarding}
+  num_imgs_per_obj: ???  # fill
+  obj_ids:  # set at runtime
+  image_size: ???   # fill
+
+query_dataloader:
+  _target_: src.dataloader.your.TestDataLoader  # write a dataloader class that provides the test images
+  root_dir: ${..root_dir}/
+  split: ${split}
+
+datasets:
+  your_dataset_name:
+    obj_names: ['cat','dog','...']  # replace
+    prompts: ['animal']  # replace

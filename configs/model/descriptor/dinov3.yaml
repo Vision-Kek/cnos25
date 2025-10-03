@@ -1,18 +1,18 @@
 cfg:
   model_name: dinov3_vitl16
   patch_size: 16
-  token_type: x_norm_clstoken
+  token_type: x_norm_clstoken  # The token type that is selected as descriptor
   cache_dir: ${data.root_dir}/${dataset_name}/onboarding_${onboarding}/descriptors
-  cache_file: ${.model_name}_descriptors.pt
+  cache_file: ${.model_name}_descriptors.pt  # These are the template embeddings that will be loaded on inference
 
 model: # wrapper
   _target_: src.model.descriptor.descriptor_model.DescriptorModel
   model:
       _target_: torch.hub.load
-      repo_or_dir: ${local.dinov3_repo}
-      source: local
+      repo_or_dir: ${local.dinov3_repo}  # change if you want to use huggingface model
+      source: local  # change if you want to use huggingface model
       model: ${...cfg.model_name}
-      weights: ${local.dinov3_checkpoint}
+      weights: ${local.dinov3_checkpoint}  # change if you want to use huggingface model
       device: ${local.device}
-  image_size: 256
-  chunk_size: 16
+  image_size: ${data.reference_dataloader.image_size}
+  chunk_size: 16  # how many proposal crops are forwarded at once. larger -> faster, but more memory
