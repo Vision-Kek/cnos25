@@ -30,3 +30,8 @@ datasets:
     n_objects: 28
     obj_names: [ "AlphabetSoup", "BBQSauce", "Butter", "Cherries", "ChocolatePudding", "Cookies", "Corn", "CreamCheese", "GranolaBars", "GreenBeans", "Ketchup", "Macaroni&Cheese", "Mayo", "Milk", "Mushrooms", "Mustard", "OrangeJuice", "Parmesan", "Peaches", "Peas&Carrots", "Pineapple", "Popcorn", "Raisins", "SaladDressing", "Spaghetti", "TomatoSauce", "Tuna", "Yogurt" ]
     prompts: [ "bottle", "snack", "tin can", "yoghurt", "seasoning", "popcorn", "mustard", "ketchup", "cheese", "juice", "milk", "box", "package", "container" ]
+
+  lmo:  # Example for BOP-Classic dataset
+    n_objects: 15
+    obj_names: [obj_000001, obj_000002, obj_000003, obj_000004, obj_000005, obj_000006, obj_000007, obj_000008, obj_000009, obj_000010, obj_000011, obj_000012, obj_000013, obj_000014, obj_000015]
+    prompts: [toy, tool]

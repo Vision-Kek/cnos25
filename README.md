@@ -50,7 +50,7 @@ bop_data_root/
 │   ├── test_metaData.json
 │   ├── test_targets_bop24.json
 │   ├── onboarding_static
-│   │   ├── obj_00000xx/
+│   │   ├── obj_00000xx_up/
 │   │   └── ...
 │   ├── val/
 │   │   ├── 000001/
@@ -66,7 +66,7 @@ bop_data_root/
 │   ├── clip_splits.json
 │   ├── test_targets_bop24.json
 │   ├── onboarding_static/ # -> object_ref_aria_static 
-│   │   ├── obj_00000xx
+│   │   ├── obj_00000xx_up.tar
 │   │   └── ...
 │   ├── test_aria/
 │   │   ├── clip-003xxx.tar

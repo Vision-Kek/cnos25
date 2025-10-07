@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+import json
+import fnmatch
 
 from src.utils.bbox_utils import CropResizePad
 from src.dataloader.base_bop import BaseBOP
@@ -27,6 +29,13 @@ except ImportError:
         "Please install bop_toolkit_lib: pip install git+https://github.com/thodan/bop_toolkit.git"
     )
 
+
+def find_in_tar(tar_path, pattern):
+    with tarfile.open(tar_path, 'r') as tar:
+        all_names = tar.getnames()
+        matches = [name for name in all_names
+                  if fnmatch.fnmatch(name, pattern) and tar.getmember(name).isfile()]
+    return matches
 
 def load_image(
     tar: Any, frame_key: str, stream_key: str, dtype: Any = np.uint8
@@ -45,6 +54,17 @@ def load_image(
     file = tar.extractfile(f"{frame_key}.image_{stream_key}.jpg")
     return imageio.imread(file).astype(dtype)
 
+def ensure_target_size(tensor, target_size):
+    if tensor.shape[-2:] == torch.Size(target_size):
+        return tensor  # ok
+    else:
+        logging.warning(f'Shape mismatch after cropping template: {tensor.shape}, interpolating to {target_size}')
+        return torch.nn.functional.interpolate(
+            tensor.unsqueeze(0),
+            size=target_size,
+            mode='bilinear',
+            align_corners=False
+        )[0]
 
 # The template (reference) dataloader
 class BOPHOT3DTemplate(Dataset):
@@ -63,10 +83,12 @@ class BOPHOT3DTemplate(Dataset):
             obj_ids = [
                 int(obj_id[4:10])  # pattern: obj_0000xxx
                 for obj_id in os.listdir(template_dir)
-                if osp.isdir(osp.join(template_dir, obj_id)) and obj_id.startswith('obj_')
+                if obj_id.startswith('obj_') and obj_id.endswith('.tar')
             ]
             obj_ids = sorted(np.unique(obj_ids).tolist())
             logging.info(f"Found {obj_ids} objects in {self.template_dir}")
+            if len(obj_ids) == 0 and len(os.listdir(template_dir)) > 0:
+                logging.warning(f'no .tars found in {template_dir}, make sure you use the latest Hot3D version from HF')
 
         self.num_imgs_per_obj = num_imgs_per_obj  # to avoid memory issue
         self.obj_ids = obj_ids
@@ -87,44 +109,71 @@ class BOPHOT3DTemplate(Dataset):
         # Currently using Aria device for sampling ref images onboarding_static -> object_ref_aria_static
         static_onboarding = True if "onboarding_static" in self.template_dir else False
         if static_onboarding:
-            # HOT3D names the two videos with _1 and _2 instead of _up and _down
-            obj_dirs = [
-                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_1",
-                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_2",
+            # In a previous HOT3D version, HOT3D named the two videos with _1 and _2 instead of _up and _down
+            # Now it is _up, _down, too (see also https://groups.google.com/g/bop-benchmark/c/K0CcuRM2CQ8)
+            obj_tars = [
+                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_up.tar",
+                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_down.tar",
             ]
             num_selected_imgs = self.num_imgs_per_obj // 2  # 100 for 2 videos
         else:
-            obj_dirs = [
-                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}",
+            obj_tars = [
+                f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}.tar",
             ]
             num_selected_imgs = self.num_imgs_per_obj
-
-        for obj_dir in obj_dirs:
-            if not osp.exists(obj_dir):
+        for obj_tar in obj_tars:
+            if not osp.exists(obj_tar):
                 continue
-            obj_dir = Path(obj_dir)
-            obj_rgbs = sorted(Path(obj_dir).glob("*214-1.[pj][pn][g]"))
 
+            obj_rgbs = find_in_tar(obj_tar, "*image_214-1.[pj][pn][g]")
+            # support _1201-x gray stream, too
+            # previously only rgb images were used for templates, but Quest3 test images are gray
             # use 1201-2 and not 1201-1 stream because in -1 stream some boxes are negative
-            obj_rgbs += sorted(Path(obj_dir).glob("*1201-2.[pj][pn][g]"))
-
-            obj_masks = [None for _ in obj_rgbs]
-            assert len(obj_rgbs) == len(obj_masks), f"rgb and mask mismatch in {obj_dir}"
-
+            obj_grays = find_in_tar(obj_tar, "*image_1201-2.[pj][pn][g]")
+            obj_imgfiles = obj_rgbs + obj_grays
+            # masks available since 10/2025 https://groups.google.com/g/bop-benchmark/c/K0CcuRM2CQ8
+            obj_maskfiles = find_in_tar(obj_tar, "*mask_214-1.png")
+            obj_maskfiles += [None for _ in obj_grays]  # but available only for rgb (214-1), not for gray (1201-2)
+            assert len(obj_imgfiles) == len(obj_maskfiles), (f"rgb and mask mismatch in {obj_tar}, "
+                                                             f"{len(obj_imgfiles)},{len(obj_maskfiles)}")
             # If HOT3D + dynamic onboarding, we have the bbox for only the first image.
             # therefore, we select the first image only.
             if not static_onboarding:
                 selected_idx = [0, 0, 0, 0, 0]  # required aggregation top k
             else:
                 # select random samples
-                selected_idx = list(np.random.choice(len(obj_rgbs), num_selected_imgs, replace=False))
+                selected_idx = list(np.random.choice(len(obj_imgfiles), num_selected_imgs, replace=False))
+
             for idx_img in tqdm(selected_idx):
-                image = Image.open(obj_rgbs[idx_img])
-                # support _1201-x gray stream, too
-                # previously only rgb images were used for templates, but Quest3 test images are gray
-                img_suffix = str(obj_rgbs[idx_img]).split('.image_')[-1]  # either 214-1.jpg or 1201-x.jpg
-                json_path = str(obj_rgbs[idx_img]).replace(f"image_{img_suffix}", "objects.json")
-                info = bop_inout.load_json(json_path)
+                filename = obj_imgfiles[idx_img]
+                img_suffix = str(filename).split('.image_')[-1]  # either 214-1.jpg or 1201-x.jpg
+                with (tarfile.open(obj_tar, 'r') as tar):
+                    # extract the image from the tar
+                    imgfile = tar.extractfile(obj_imgfiles[idx_img])
+                    image_np = imageio.imread(imgfile).astype(np.uint8)
+
+                    # extract mask if available
+                    mask_path = str(obj_imgfiles[idx_img]).replace(
+                        f"image_{img_suffix}", f"mask_{img_suffix}").replace('jpg','png')
+                    try:
+                        maskfile = tar.extractfile(mask_path)
+                        mask = Image.open(maskfile).copy()
+                    except KeyError:
+                        mask = None
+
+                    # extract the info json that corresponds to the current image
+                    json_path = str(obj_imgfiles[idx_img]).replace(f"image_{img_suffix}", "objects.json")
+                    jsonfile = tar.extractfile(json_path)
+                    info = json.load(jsonfile)
+
+                image_np = np.array(Image.fromarray(image_np).convert('RGB'))
+                # white mask if mask is not available
+                mask_np = np.array(mask) / 255 if mask else np.ones((image_np.shape[0], image_np.shape[1]))
+
+                template = torch.tensor(image_np / 255).permute(2, 0, 1)
+                mask = torch.tensor(mask_np).unsqueeze(-1).permute(2, 0, 1)
+                template = torch.where(mask > 0, template, self.proposal_processor.pad_value) # APPLY MASK
+
                 obj_id = [k for k in info.keys()][0]
                 try:
                     # box is derived from .objects.json
@@ -132,50 +181,24 @@ class BOPHOT3DTemplate(Dataset):
                 except KeyError as e:
                     logging.warning(f"No such key {img_suffix.split('.')[0]}, "
                                     f"available {info[obj_id][0]['boxes_amodal'].keys()}. "
-                                    f"Skipping and sampling anotehr one.")
-                    selected_idx.append(np.random.choice(len(obj_rgbs), 1).item())
+                                    f"Skipping and sampling another one.")
+                    selected_idx.append(np.random.choice(len(obj_imgfiles), 1).item())
                     continue
-                mask = np.ones((image.size[1], image.size[0])) * 255
 
-                mask = torch.from_numpy(np.array(mask) / 255).float()
-                image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
-                image_paths.append(obj_rgbs[idx_img])
-
-                template = image.permute(2, 0, 1)
-                mask = mask.unsqueeze(-1).permute(2, 0, 1)
                 box = torch.tensor(bbox)
                 if box.min() < 0: logging.warning(f'{box.min()=} < 0')
 
                 template_cropped = self.proposal_processor(images=template.unsqueeze(0), boxes=box.unsqueeze(0))[0]
-
                 # sometimes the cropping is off by 1px (e.g. yields a 223 instead of 224 crop) -> catch this case
-                target_size = [self.image_size, self.image_size]
-                if template_cropped.shape[-2:] != torch.Size(target_size):
-                    logging.warning(f'Shape mismatch after cropping template IMAGE: {template_cropped.shape[-2:]}, '
-                                    f'interpolating')
-                    template_cropped = torch.nn.functional.interpolate(
-                        template_cropped.unsqueeze(0),
-                        size=target_size,
-                        mode='bilinear',
-                        align_corners=False
-                    )[0]
-
+                template_cropped = ensure_target_size(template_cropped, target_size=[self.image_size, self.image_size])
                 templates_cropped.append(T.ToPILImage()(template_cropped))  # return PIL image, not tensor
 
                 mask_cropped = self.proposal_processor(images=mask.unsqueeze(0), boxes=box.unsqueeze(0))[0]
-
                 # sometimes the cropping is off by 1px (e.g. yields a 223 instead of 224 crop) -> catch this case
-                if mask_cropped.shape[-2:] != torch.Size(target_size):
-                    logging.warning(f'Shape mismatch after cropping template MASK: {mask_cropped.shape[-2:]}, '
-                                    f'interpolating')
-                    mask_cropped = torch.nn.functional.interpolate(
-                        mask_cropped.unsqueeze(0),
-                        size=target_size,
-                        mode='bilinear',
-                        align_corners=False
-                    )[0]
-
+                mask_cropped = ensure_target_size(mask_cropped, target_size=[self.image_size, self.image_size])
                 masks_cropped.append(mask_cropped)
+
+                image_paths.append(obj_imgfiles[idx_img])
 
         masks_cropped = torch.stack(masks_cropped, dim=0)
         return {

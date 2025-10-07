@@ -31,7 +31,7 @@ def inference_loop(cfg, model, query_dataloader):
                                               scores=score_per_proposal[:cfg.n_max_save].cpu(),
                                               runtime=runtime,
                                               box_fmt='xyxy',
-                                              masks=proposals.masks.cpu() if cfg.save_masks else None)
+                                              masks=proposals.masks[:cfg.n_max_save].cpu() if cfg.save_masks else None)
 
     bopeval.generate_json_from_npzs()
     if cfg.split != 'test': bopeval.measure_AP()
@@ -69,7 +69,7 @@ def run_inference(cfg: DictConfig):
     no_collate = lambda batch: batch # don't convert to tensor/device
     query_dataloader = DataLoader(
         query_dataset,
-        batch_size=1,  # only support a single image for now
+        batch_size=1,
         num_workers=cfg.local.num_workers,
         collate_fn=no_collate,
         shuffle=False,

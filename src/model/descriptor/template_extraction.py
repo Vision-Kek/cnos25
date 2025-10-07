@@ -11,30 +11,6 @@ import os.path as osp
 from collections import defaultdict
 from tqdm import tqdm
 
-
-def pil_center_pad(image, target_size):
-    """
-    Pad an image to center it in the target size.
-
-    Args:
-        image: PIL Image object
-        target_size: tuple (width, height) for output size
-
-    Returns:
-        Padded PIL Image
-    """
-    # Create a new image with the target size and background color
-    padded_image = Image.new('RGB', target_size, (0, 0, 0))  # black background
-
-    # Calculate position to paste the original image (centered)
-    x = (target_size[0] - image.width) // 2
-    y = (target_size[1] - image.height) // 2
-
-    # Paste the original image onto the padded image
-    padded_image.paste(image, (x, y))
-    return padded_image
-
-
 class TemplateEmbExtraction:
     def __init__(self, ref_dataloader, dataset_name, obj_names, out_dir=None):
         self.obj_names = obj_names
@@ -57,7 +33,7 @@ class TemplateEmbExtraction:
         for i, (object_class, ref_sample) in enumerate(zip(self.obj_names, self.ref_dataset)):
             # cache_template_images: store image name indices, too, which makes it easier to post-verify features
             self.ref_img_pths[object_class] = ref_sample["image_paths"]
-            self.ref_images[object_class] = ref_sample["templates"]#[imgproc.torch_to_pil(tensor_im) for tensor_im in ref_sample["templates"]]
+            self.ref_images[object_class] = ref_sample["templates"]
             self.ref_masks[object_class] = ref_sample["template_masks"].cpu()
             logging.info(f'done {i+1}/{len(self.obj_names)}')
             if cancel_after and (i+1) >= cancel_after: break
