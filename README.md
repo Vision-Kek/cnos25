@@ -153,13 +153,13 @@ Complete it and replace `bop` through it as the `defaults` config option for [on
 
 </details>
 
-## 📉 Results
+## 📈 Results
 
 
 |         | Proposal-Descriptor | H3    | Hot3D | Hopev2 | Handal |
 |---------|---------------------|-------|-------|--------|--------|
 | cnos    | FastSAM-dinov2      | 0.340 | 0.373 | 0.343  | 0.304  |
-| cnos25  | YOLOE-dinov3        | 0.441 | 0.482 | 0.452  | 0.389  |
+| cnos25  | YOLOE-dinov3        | 0.441 | 0.481 | 0.452  | 0.389  |
 
 Avg. 0.134 sec / image on RTX4090.
 
@@ -210,4 +210,4 @@ The code is adapted from [CNOS](https://github.com/nv-nguyen/cnos/). The two mod
 [YOLOE](https://github.com/THU-MIG/yoloe/) and [dinov3](https://github.com/facebookresearch/dinov3/).
 
 ## Contact
-If you have any question or feature request, feel free to create an issue or contact me at jherzog@zju.edu.cn.
+If you have any question or feature request (support of dynamic/model-based onboarding, other datasets, custom images etc.) feel free to create an issue or contact me at jherzog@zju.edu.cn.
