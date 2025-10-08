@@ -4,7 +4,7 @@ ultralyticsmodel:
 
 model: # wrapper
   _target_: src.model.proposal.yoloe.YoloE
-  ultralyticsmodel: ${..ultralyticsmodel}   # you control what gets passed explicitly
+  ultralyticsmodel: ${..ultralyticsmodel}
   text_prompts: "${data.datasets[${dataset_name}].prompts}"
   cfg:
     rotate_input_images: []

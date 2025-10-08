@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import auto, Enum
 from typing import Any
 import logging, os
 import os.path as osp
@@ -21,16 +20,16 @@ from src.dataloader.base_bop import BaseBOP
 from src.utils.inout import load_json
 
 
-try:
-    from bop_toolkit_lib import dataset_params
-    from bop_toolkit_lib import inout as bop_inout
-except ImportError:
-    raise ImportError(
-        "Please install bop_toolkit_lib: pip install git+https://github.com/thodan/bop_toolkit.git"
-    )
-
-
 def find_in_tar(tar_path, pattern):
+    """Find files in a tar archive that match a given pattern.
+
+    Args:
+        tar_path (str): Path to the tar file to search
+        pattern (str): File pattern to match using fnmatch/glob syntax
+
+    Returns:
+        list: List of filenames within the tar that match the pattern and are regular files
+    """
     with tarfile.open(tar_path, 'r') as tar:
         all_names = tar.getnames()
         matches = [name for name in all_names
@@ -55,6 +54,16 @@ def load_image(
     return imageio.imread(file).astype(dtype)
 
 def ensure_target_size(tensor, target_size):
+    """Ensure a tensor meets target size requirements, interpolating if necessary.
+
+    Args:
+        tensor: Input tensor to resize
+        target_size: Target size as (height, width) tuple
+
+    Returns:
+        Tensor resized to target size if original size doesn't match,
+        otherwise returns original tensor unchanged.
+    """
     if tensor.shape[-2:] == torch.Size(target_size):
         return tensor  # ok
     else:
@@ -66,8 +75,20 @@ def ensure_target_size(tensor, target_size):
             align_corners=False
         )[0]
 
-# The template (reference) dataloader
+
 class BOPHOT3DTemplate(Dataset):
+    """Dataset class for loading template/reference images from BOP HOT3D dataset.
+
+     Used for model-free onboarding where template images are cropped and processed
+     for object detection/pose estimation.
+
+     Args:
+         template_dir (str): Directory containing template tar files
+         obj_ids (list, optional): List of object IDs to include. If None, auto-detects from directory
+         image_size (tuple): Target image size for processing
+         num_imgs_per_obj (int): Number of images to sample per object
+         **kwargs: Additional arguments
+     """
     def __init__(
             self,
             template_dir,
@@ -105,17 +126,30 @@ class BOPHOT3DTemplate(Dataset):
         raise NotImplementedError('Model-based not implemented. Go back to https://github.com/nv-nguyen/cnos.')
 
     def __getitem__modelfree__(self, idx):
+        """Get template data for model-free onboarding.
+
+        Currently using Aria device for sampling ref images. Uses 214-1 stream for rgbs and 1201-2 stream for grays.
+
+        Args:
+            idx (int): Index of the object to retrieve
+
+        Returns:
+            dict: Contains:
+                - templates (list): List of PIL images of cropped templates
+                - template_masks (Tensor): Binary masks for the templates
+                - image_paths (list): Paths to the source images
+        """
         templates_cropped, masks_cropped, boxes, image_paths = [], [], [], []
-        # Currently using Aria device for sampling ref images onboarding_static -> object_ref_aria_static
+        # onboarding_static -> object_ref_aria_static
         static_onboarding = True if "onboarding_static" in self.template_dir else False
         if static_onboarding:
             # In a previous HOT3D version, HOT3D named the two videos with _1 and _2 instead of _up and _down
-            # Now it is _up, _down, too (see also https://groups.google.com/g/bop-benchmark/c/K0CcuRM2CQ8)
+            # Since 30fe9674782f32e1e5edba98476b6ff4300132c5 10/25, it is named _up, _down, too
             obj_tars = [
                 f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_up.tar",
                 f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}_down.tar",
             ]
-            num_selected_imgs = self.num_imgs_per_obj // 2  # 100 for 2 videos
+            num_selected_imgs = self.num_imgs_per_obj // len(obj_tars)  # e.g. 100 / 2 = 50
         else:
             obj_tars = [
                 f"{self.template_dir}/obj_{self.obj_ids[idx]:06d}.tar",
@@ -231,7 +265,7 @@ class Target(object):
 
     def to_json(self):
         return {
-            "frame_id": self.im_id,  # frame_id: consistent naming with metadata of other bop datasets
+            "frame_id": self.im_id,
             "scene_id": self.scene_id,
             "device_type": self.device_type,
             "tar_filepath": self.tar_filepath,
@@ -240,8 +274,16 @@ class Target(object):
         }
 
 
-# The query (test) dataloader
-class BaseBOPHOT3D(BaseBOP):
+class BOPHOT3DTest(BaseBOP):
+    """Base dataset class for BOP HOT3D query/test images.
+
+    Handles loading of test images from both Aria and Quest3 devices.
+
+    Args:
+        root_dir (str): Root directory of the dataset
+        split (str): Dataset split ('test', 'val')
+        **kwargs: Additional arguments
+    """
     def __init__(self, root_dir, split, **kwargs):
         super().__init__(root_dir, split, **kwargs)
 
@@ -292,6 +334,17 @@ class BaseBOPHOT3D(BaseBOP):
         return len(self._targets)
 
     def __getitem__(self, idx):
+        """Get a test image and its metadata.
+
+       Args:
+           idx (int): Index of the test target to retrieve
+
+       Returns:
+           dict: Contains:
+               - image (PIL.Image): The test image
+               - scene_id (int): Scene identifier
+               - frame_id (str): Frame identifier
+       """
         st = self._targets[idx]
         tar = tarfile.open(st.tar_filepath, mode="r")
         frame_id = st.im_id
@@ -302,7 +355,7 @@ class BaseBOPHOT3D(BaseBOP):
         image_np: np.ndarray = load_image(tar, frame_key, stream_id)
         image = Image.fromarray(np.uint8(image_np))
         return dict(
-            image=image, # PIL.Image
+            image=image,
             scene_id=scene_id,
             frame_id=frame_id,
         )

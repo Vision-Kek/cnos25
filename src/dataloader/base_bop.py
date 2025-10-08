@@ -95,7 +95,7 @@ class BaseBOP(Dataset):
                             rgb_path = self.dp_split[
                                 f"{eval_modality}_{eval_sensor}_tpath"
                             ].format(scene_id=int(scene_id), im_id=im_id)
-                            assert osp.exists(rgb_path), f'Hot3d {rgb_path=} does not exist. If you use non-bop-format dataset (no gray1/gray2 folders), use BaseBOPHOT3D instead.'
+                            assert osp.exists(rgb_path), f'Hot3d {rgb_path=} does not exist. If you use non-bop-format dataset (no gray1/gray2 folders), use BOPHOT3DTest instead.'
                         else:
                             rgb_path = self.dp_split["rgb_tpath"].format(
                                 scene_id=int(scene_id), im_id=im_id
