@@ -26,6 +26,7 @@ class BaseBOP(Dataset):
         """
         self.root_dir = root_dir
         self.split = split
+        self.logger = logging.getLogger(__name__)
 
     def load_list_scene(self, split=None):
         if isinstance(split, str):
@@ -49,7 +50,7 @@ class BaseBOP(Dataset):
             self.list_scenes = sorted(self.list_scenes)
         else:
             raise NotImplementedError
-        logging.info(f"Found {len(self.list_scenes)} scenes")
+        self.logger.info(f"Found {len(self.list_scenes)} scenes")
 
     def load_scene(self, path, use_visible_mask=True):
         # Load rgb and mask images
@@ -80,7 +81,7 @@ class BaseBOP(Dataset):
                 "depth_path": [],
                 "intrinsic": [],
             }
-            logging.info(f"Loading metaData for split {split}")
+            self.logger.info(f"Loading metaData for split {split}")
             metaData_path = osp.join(self.root_dir, f"{split}_metaData.json")
             if reset_metaData:
                 for scene_path in tqdm(self.list_scenes, desc="Loading metaData"):
@@ -129,7 +130,7 @@ class BaseBOP(Dataset):
             drop=True
         )
         finish_time = time.time()
-        logging.info(
+        self.logger.info(
             f"Finish loading metaData of size {len(self.metaData)} in {finish_time - start_time:.2f} seconds"
         )
         return

@@ -97,6 +97,7 @@ class BOPHOT3DTemplate(Dataset):
             num_imgs_per_obj=50,
             **kwargs,
     ):
+        self.logger = logging.getLogger(__name__)
         self.template_dir = template_dir
         self.model_free_onboarding = True
         self.dataset_name = template_dir.split("/")[-2]
@@ -107,16 +108,16 @@ class BOPHOT3DTemplate(Dataset):
                 if obj_id.startswith('obj_') and obj_id.endswith('.tar')
             ]
             obj_ids = sorted(np.unique(obj_ids).tolist())
-            logging.info(f"Found {obj_ids} objects in {self.template_dir}")
+            self.logger.info(f"Found {obj_ids} objects in {self.template_dir}")
             if len(obj_ids) == 0 and len(os.listdir(template_dir)) > 0:
-                logging.warning(f'no .tars found in {template_dir}, make sure you use the latest Hot3D version from HF')
+                self.logger.warning(f'no .tars found in {template_dir}, make sure you use the latest Hot3D version from HF')
 
         self.num_imgs_per_obj = num_imgs_per_obj  # to avoid memory issue
         self.obj_ids = obj_ids
         self.image_size = image_size
 
         # for HOT3D, we have black objects so we use gray background
-        logging.info("Use gray background for HOT3D")
+        self.logger.info("Use gray background for HOT3D")
         self.proposal_processor = CropResizePad(
             self.image_size,
             pad_value=0.5,  # gray background
@@ -213,14 +214,14 @@ class BOPHOT3DTemplate(Dataset):
                     # box is derived from .objects.json
                     bbox = np.int32(info[obj_id][0]["boxes_amodal"][img_suffix.split('.')[0]])
                 except KeyError as e:
-                    logging.warning(f"No such key {img_suffix.split('.')[0]}, "
+                    self.logger.warning(f"No such key {img_suffix.split('.')[0]}, "
                                     f"available {info[obj_id][0]['boxes_amodal'].keys()}. "
                                     f"Skipping and sampling another one.")
                     selected_idx.append(np.random.choice(len(obj_imgfiles), 1).item())
                     continue
 
                 box = torch.tensor(bbox)
-                if box.min() < 0: logging.warning(f'{box.min()=} < 0')
+                if box.min() < 0: self.logger.warning(f'{box.min()=} < 0')
 
                 template_cropped = self.proposal_processor(images=template.unsqueeze(0), boxes=box.unsqueeze(0))[0]
                 # sometimes the cropping is off by 1px (e.g. yields a 223 instead of 224 crop) -> catch this case
@@ -290,7 +291,7 @@ class BOPHOT3DTest(BaseBOP):
         # clip_definitions contain the mapping from scene id to device (i.e. Quest3/Aria)
         clip_definitions_filepath = f"{root_dir}/clip_definitions.json"
         clip_definitions = load_json(clip_definitions_filepath)
-        logging.info(f"HOT3D {len(clip_definitions)=}")
+        self.logger.info(f"HOT3D {len(clip_definitions)=}")
 
         targets_filepath = f"{root_dir}/test_targets_bop24.json"
         target_payload = load_json(targets_filepath)
@@ -327,8 +328,8 @@ class BOPHOT3DTest(BaseBOP):
 
         self._targets = targets[0:]
         self.metaData = pd.DataFrame([target.to_json() for target in targets])
-        logging.info(f"len targets: {len(self._targets)}, {n_aria=}, {n_quest3=}.")
-        logging.info(f'Using 214-1 rgb img for Aria targets and 1201-1 gray img for Quest3 targets')
+        self.logger.info(f"len targets: {len(self._targets)}, {n_aria=}, {n_quest3=}.")
+        self.logger.info(f'Using 214-1 rgb img for Aria targets and 1201-1 gray img for Quest3 targets')
 
     def __len__(self):
         return len(self._targets)
@@ -343,7 +344,7 @@ class BOPHOT3DTest(BaseBOP):
            dict: Contains:
                - image (PIL.Image): The test image
                - scene_id (int): Scene identifier
-               - frame_id (str): Frame identifier
+               - frame_id (int): Frame identifier
        """
         st = self._targets[idx]
         tar = tarfile.open(st.tar_filepath, mode="r")

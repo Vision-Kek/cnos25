@@ -32,6 +32,7 @@ class BOPTemplate(Dataset):
         num_imgs_per_obj=50,
         **kwargs,
     ):
+        self.logger = logging.getLogger(__name__)
         self.template_dir = template_dir
         self.model_free_onboarding = True
         self.dataset_name = template_dir.split("/")[-2]
@@ -42,7 +43,7 @@ class BOPTemplate(Dataset):
                 if osp.isdir(osp.join(template_dir, obj_id)) and obj_id.startswith('obj_')
             ]
             obj_ids = sorted(np.unique(obj_ids).tolist())
-            logging.info(f"Found {obj_ids} objects in {self.template_dir}")
+            self.logger.info(f"Found {obj_ids} objects in {self.template_dir}")
 
         if "hot3d" in template_dir:
             raise ValueError("For loading HOT3D onboarding data, please use class BOPHOT3DTemplate.")
@@ -118,7 +119,7 @@ class BOPTemplate(Dataset):
                 template = image.permute(2, 0, 1)
                 mask = mask.unsqueeze(-1).permute(2, 0, 1)
                 box = torch.tensor(bbox)
-                if box.min() < 0: logging.warning(f'{box.min()=} < 0')
+                if box.min() < 0:  self.logger.warning(f'{box.min()=} < 0')
 
                 template_cropped = self.proposal_processor(images=template.unsqueeze(0), boxes=box.unsqueeze(0))[0]
                 templates_cropped.append(T.ToPILImage()(template_cropped)) # return PIL image, not tensor

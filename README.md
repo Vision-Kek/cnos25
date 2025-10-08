@@ -159,9 +159,9 @@ Complete it and replace `bop` through it as the `defaults` config option for [on
 |         | Proposal-Descriptor | H3    | Hot3D | Hopev2 | Handal |
 |---------|---------------------|-------|-------|--------|--------|
 | cnos    | FastSAM-dinov2      | 0.340 | 0.373 | 0.343  | 0.304  |
-| cnos25  | YOLOE-dinov3        | 0.435 | 0.464 | 0.452  | 0.389  |
+| cnos25  | YOLOE-dinov3        | 0.441 | 0.482 | 0.452  | 0.389  |
 
-Avg. 0.126 sec / image on RTX4090.
+Avg. 0.134 sec / image on RTX4090.
 
 <details><summary>Output dir and files</summary>
 
@@ -188,7 +188,7 @@ Reported results from the [BOP challenge submission](https://bop.felk.cvut.cz/le
 have been produced with input images rotated for some datasets, because YOLOE is not optimal on rotated images.
 This prepocessing configuration can be set in [yoloe.yaml](configs/model/proposal/yoloe.yaml): 
 * For Hot3D, all images are rotated clockwise by 90deg: `rotate_input_images: [ -90 ]`
-* For Handal, a batch of 3 images is created and the frame with the highest cumulative confidence selected: `rotate_input_images: [ 0, 90, -90 ]`
+* For Handal, a batch of 3 images is created: `rotate_input_images: [ 0, 90, -90 ]`. The frame with the highest cumulative confidence will be selected.
 * For Hopev2, no such rotation was done: `rotate_input_images: [ ]`
 
 </details>

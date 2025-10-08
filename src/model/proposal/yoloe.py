@@ -18,10 +18,11 @@ class YoloE:
         self.conf_thresh = cfg.conf_thresh
         self.verbose = cfg.verbose
         self.cfg = cfg
+        self.logger = logging.getLogger(__name__)
         if text_prompts is not None: self.set_texts(text_prompts)
 
     def set_texts(self, names):
-        logging.info(f'YoloE.set_texts {names}')
+        self.logger.info(f'YoloE.set_texts {names}')
         names = list(names)
         self.model.set_classes(names, self.model.get_text_pe(names))
 
@@ -37,7 +38,7 @@ class YoloE:
         for res in results:
             # handle empty, otherwise AttributeError: 'NoneType' object has no attribute 'data'
             if res.masks is None:
-                logging.warning('Warn: YoloE results: No detections.')
+                self.logger.warning('Warn: YoloE results: No detections.')
                 mask_backscaled = torch.tensor([])
             else:
                 # scale mask back to original image size
