@@ -1,14 +1,16 @@
 # cnos25
 <a href="https://bop.felk.cvut.cz/leaderboards/modelfree-detection-unseen-bop24/bop-h3">
-    <img src="https://img.shields.io/badge/BOP2025-8A2BE2" />
+    <img src="https://img.shields.io/badge/BOP Challenge 2025-8A2BE2" />
 </a>
+
+**[2025.11.16]** Winner of **The Best Fast Method**, **The Best Open Source Method** Awards, Track 7: Model-free 2D detection of unseen objects on BOP-H3, 10th International Workshop on Recovering 6D Object Pose, ICCV 2025.
+
+---
 
 Tempalate-based novel object detection and segmentation.
 
----
 cnos25 follows the [CNOS](https://github.com/nv-nguyen/cnos/) propose-then-match pipeline.
 It uses YOLOE as the proposal model and dinov3 descriptors for matching.
-It's [fast](https://bop.felk.cvut.cz/leaderboards/modelfree-detection-unseen-bop24/bop-h3).
 
 Besides result reproduction, this repo might provide some useful code for you:
 * Handling of Hot3D dataset  - which is a bit tricky with its two rgb/gray streams, Aria/Quest3 devices and clip_utils dependency
