@@ -5,9 +5,13 @@
 
 **[2025.11.16]** Winner of **The Best Fast Method**, **The Best Open Source Method** Awards, Track 7: Model-free 2D detection of unseen objects on BOP-H3, 10th International Workshop on Recovering 6D Object Pose, ICCV 2025.
 
+**[2025.12.16]** Add custom image and visual prompt demo.
+
 ---
 
 Tempalate-based novel object detection and segmentation.
+
+<details><summary>About </summary>
 
 cnos25 follows the [CNOS](https://github.com/nv-nguyen/cnos/) propose-then-match pipeline.
 It uses YOLOE as the proposal model and dinov3 descriptors for matching.
@@ -17,7 +21,7 @@ Besides result reproduction, this repo might provide some useful code for you:
 * Evaluation tools - which help you to keep track of your experiments
 * Visualization tools and demos - nice to get started
 
----
+</details>
 
 ## 🔧 Setup
 
