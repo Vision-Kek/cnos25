@@ -9,7 +9,7 @@
 
 ---
 
-Tempalate-based novel object detection and segmentation.
+Template-based novel object detection and segmentation.
 
 <details><summary>About </summary>
 
@@ -22,6 +22,8 @@ Besides result reproduction, this repo might provide some useful code for you:
 * Visualization tools and demos - nice to get started
 
 </details>
+
+---
 
 ## 🔧 Setup
 
@@ -52,6 +54,8 @@ While SAM3 and YOLOE attempt to support this to some extent, you might have noti
 The CNOS pipeline is actually a solution for that!
 It supports cross-image (unlike SAM3) and multi-reference (unlike YOLOE).
 [Try in this notebook](custom_images.ipynb) with your own images!
+
+![](assets/custom_img_res_viz.png)
 
 ### With BOP Datasets
 Following the [BOP workflow](https://bop.felk.cvut.cz/static/img/6d_object_pose_estimation.jpg), there are two stages,
