@@ -39,12 +39,32 @@ All paths you need to set up are in [configs/local.yaml](configs/local.yaml).
    2. [Clone](https://github.com/facebookresearch/dinov3). Set `dinov3_repo:` in `local.yaml`.
 
 
-### Datasets
+## 🚀 Quick start
+### Custom Images & Visual Prompting
+I noticed a great interest in visual prompting for detection & segmentation.
+
+While SAM3 and YOLOE attempt to support this to some extent, you might have noticed that its usefulness is very limited.
+
+The CNOS pipeline is actually a solution for that!
+It supports cross-image (unlike SAM3) and multi-reference (unlike YOLOE).
+[Try in this notebook](custom_images.ipynb) with your own images!
+
+### With BOP Datasets
+Following the [BOP workflow](https://bop.felk.cvut.cz/static/img/6d_object_pose_estimation.jpg), there are two stages,
+*onboarding* and *inference* - check out the [onboarding notebook](onboarding_demo.ipynb) and the [inference notebook](inference_demo.ipynb):
+
+![demo.png](assets/demo.png)
+
+## ▶️ Full run
+
+<details><summary>BOP Dataset Setup </summary>
+
 Currently, the three datasets in BOP-H3 are explicitly supported.
 When [downloading](https://bop.felk.cvut.cz/datasets/), you can skip all training folders as cnos is training-free and makes no use of them.
 You can refer to [this script](https://github.com/nv-nguyen/cnos/blob/main/src/scripts/download_modelfree_onboarding_bop_h3.py) for downloading, unzipping and renaming.
 
-<details><summary>File Tree</summary>
+
+After downloading, set `bop_data_root:` in `local.yaml`.
 
 ```bash
 bop_data_root/
@@ -81,17 +101,6 @@ bop_data_root/
 
 </details>
 
-After downloading, set `bop_data_root:` in `local.yaml`.
-
-## 🚀 Quick start
-
-Check out the [onboarding notebook](onboarding_demo.ipynb) and the [inference notebook](inference_demo.ipynb):
-![demo.png](assets/demo.png)
-
-## ▶️ Full run
-Following the [BOP workflow](https://bop.felk.cvut.cz/static/img/6d_object_pose_estimation.jpg), there are two stages,
-onboarding and inference:
-
 ###  1. Onboarding Stage
 Extract the reference (=template) descriptors from the onboarding data:
 ```commandline
@@ -104,8 +113,6 @@ The corresponding config file is [extract_templates.yaml](configs/extract_templa
 Descriptors are stored by default in `onboarding_static/descriptors` of the selected dataset.
 The default output file name is `${model_name}_descriptors.pt`.
 Change it by passing `out_file=foo.pt`.
-
-</details>
 
 </details>
 

@@ -35,12 +35,16 @@ class DescriptorModel:
         self.rgb_proposal_processor = CropResizePad(self.proposal_size)
         self.logger.info(f"Init DescriptorModel with {self.proposal_size=} Done.")
 
-    def process_rgb_proposals(self, image_pil, masks, boxes):
+    def process_rgb_proposals(self, image_pil, masks=None, boxes=None):
         """
         1. Normalize image with DINOv2 transform
         2. Mask and crop each proposals
         3. Resize each proposals to predefined longest image size
         """
+        if boxes is None:  # use the full image instead of a crop
+            boxes = torch.tensor([[0, 0, image_pil.size[1], image_pil.size[0]]], device=self.device)
+        if masks is None:  # no masking
+            masks = torch.tensor([])
         num_proposals = len(boxes)
         rgb = self.rgb_normalize(image_pil).to(boxes.device).float()
         rgbs = rgb.unsqueeze(0).repeat(num_proposals, 1, 1, 1) # n-plicate image for each proposal

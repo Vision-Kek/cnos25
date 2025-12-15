@@ -46,9 +46,7 @@ def inference_loop(cfg, model, query_dataloader):
 @hydra.main(version_base=None, config_path="configs", config_name="run_inference")
 def run_inference(cfg: DictConfig):
     OmegaConf.set_struct(cfg, False) # allows adding new keys
-    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-    output_path = hydra_cfg.runtime.output_dir
-    logging.info(f"The outputs of hydra will be stored in: {output_path}")
+    logging.info(f"The outputs of hydra will be stored in: {hydra.core.hydra_config.HydraConfig.get().runtime.output_dir}")
 
     logging.info("Initializing query dataloader...")
     logging.info(f"{cfg.data.root_dir=}")
