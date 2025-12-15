@@ -10,7 +10,8 @@ from src.model import matching
 
 
 class CNOS25:
-    def __init__(self, proposal, descriptor, matching_metric, device):
+    # See cnos25.yaml for __init__'s args
+    def __init__(self, proposal, descriptor, matching_metric, device, lazy_load=False):
         logging.info('Initializing CNOS25')
         self.device = device
         # Init proposal
@@ -18,7 +19,8 @@ class CNOS25:
         # Init descriptor
         self.descriptor = descriptor
         self.feat_type = descriptor.cfg.token_type
-        self.reference_descriptors = self.load_reference_descriptors()  # the templates
+        if not lazy_load: self.reference_descriptors = self.load_reference_descriptors()  # the templates
+        else: logging.info("lazy loading cnos25, remember to call load_reference_descriptors before inference")
         # Init matching
         self.matching_strategy = matching_metric
         logging.info('Initializing CNOS25 Done.')
