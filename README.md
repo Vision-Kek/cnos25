@@ -63,8 +63,6 @@ Following the [BOP workflow](https://bop.felk.cvut.cz/static/img/6d_object_pose_
 
 ![demo.png](assets/demo.png)
 
-## ▶️ Full run
-
 <details><summary>BOP Dataset Setup </summary>
 
 Currently, the three datasets in BOP-H3 are explicitly supported.
@@ -108,6 +106,8 @@ bop_data_root/
 ```
 
 </details>
+
+## ▶️ Full run
 
 ###  1. Onboarding Stage
 Extract the reference (=template) descriptors from the onboarding data:
@@ -170,16 +170,6 @@ Complete it and replace `bop` through it as the `defaults` config option for [on
 
 </details>
 
-## 📈 Results
-
-
-|         | Proposal-Descriptor | H3    | Hot3D | Hopev2 | Handal |
-|---------|---------------------|-------|-------|--------|--------|
-| cnos    | FastSAM-dinov2      | 0.340 | 0.373 | 0.343  | 0.304  |
-| cnos25  | YOLOE-dinov3        | 0.441 | 0.481 | 0.452  | 0.389  |
-
-Avg. 0.134 sec / image on RTX4090.
-
 <details><summary>Output dir and files</summary>
 
 Once you have started a run, its results are written into hydra-set `outputs/yyyy-mm-dd/hh-mm-ss_xxxx/`.
@@ -188,6 +178,16 @@ You'll find
 * a `nms-{...}.json` that contains the accumulated and postprocessed predictions that can be submitted to the BOP challenge.
 
 </details>
+
+## 📈 Results
+
+[Download .json](https://bop.felk.cvut.cz/method_info/1161), use as better default detections for your 6D pose estimation method.
+|         | Proposal-Descriptor | H3    | Hot3D | Hopev2 | Handal |
+|---------|---------------------|-------|-------|--------|--------|
+| cnos    | FastSAM-dinov2      | 0.340 | 0.373 | 0.343  | 0.304  |
+| cnos25  | YOLOE-dinov3        | 0.441 | 0.481 | 0.452  | 0.389  |
+
+Avg. 0.134 sec / image on RTX4090.
 
 <details><summary>Measure AP on validation split</summary>
 
