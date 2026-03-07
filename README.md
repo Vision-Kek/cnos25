@@ -30,8 +30,6 @@ Besides result reproduction, this repo might provide some useful code for you:
 ### Installation
 Install the project and its dependencies:
 ```commandline
-conda create -n cnos25 python=3.10
-conda activate cnos25
 pip install -e .
 ```
 
